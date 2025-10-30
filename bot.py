@@ -2,9 +2,12 @@
 import json
 import re
 import time
+import os
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from threading import Thread
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,13 +19,10 @@ BOT_TOKEN = "8174479461:AAH0gxk4SFqqxaQTMtvUVM8LphkD53yL4Bo"
 
 # ✅ БІЛИЙ СПИСОК ДОЗВОЛЕНИХ КОРИСТУВАЧІВ (chat_id)
 ALLOWED_USERS = [
-    "540851454", "8099175747", "7396474416","962178937" # Ваш ID
-    # Додайте сюди ID інших дозволених користувачів
-    # "123456789",
-    # "987654321",
+    "540851454", "8099175747", "7396474416", "962178937"
 ]
 
-ADMIN_CHAT_ID = "540851454"  # Адміністратор (для сповіщень про зміни)
+ADMIN_CHAT_ID = "540851454"
 
 # Години запуску перевірки
 CHECK_HOURS = {7, 11, 15, 21}
@@ -63,9 +63,24 @@ SESSION.headers.update({
 })
 SESSION.cookies.set("CONSENT", "YES+cb", domain=".google.com")
 
+# ✅ HEALTH CHECK ДЛЯ RAILWAY
+class HealthCheck(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'OK')
+    
+    def log_message(self, format, *args):
+        pass
+
+def run_health_server():
+    port = int(os.environ.get('PORT', 8080))
+    server = HTTPServer(('0.0.0.0', port), HealthCheck)
+    print(f"🏥 Health check на порті {port}")
+    server.serve_forever()
+
 # ✅ ДЕКОРАТОР ДЛЯ ПЕРЕВІРКИ ДОСТУПУ
 def restricted(func):
-    """Декоратор для обмеження доступу тільки для whitelist користувачів"""
     @wraps(func)
     def wrapped(chat_id, *args, **kwargs):
         if chat_id not in ALLOWED_USERS:
@@ -77,7 +92,6 @@ def restricted(func):
                 "Зверніться до адміністратора для отримання доступу.",
                 chat_id
             )
-            # Повідомлення адміну про спробу доступу
             send_telegram_message(
                 f"⚠️ Спроба доступу від неавторизованого користувача:\n"
                 f"👤 @{username}\n"
@@ -89,7 +103,6 @@ def restricted(func):
     return wrapped
 
 def send_telegram_message(message: str, chat_id: str = None):
-    """Відправка повідомлення в Telegram"""
     if chat_id is None:
         chat_id = ADMIN_CHAT_ID
     
@@ -113,7 +126,6 @@ def send_telegram_message(message: str, chat_id: str = None):
         return False
 
 def load_previous_data() -> dict:
-    """Завантаження попередніх даних"""
     try:
         if DATA_FILE.exists():
             data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
@@ -126,7 +138,6 @@ def load_previous_data() -> dict:
     return {}
 
 def save_data(data: dict):
-    """Збереження даних"""
     try:
         DATA_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"💾 Дані збережено: {len(data)} розширень")
@@ -134,7 +145,6 @@ def save_data(data: dict):
         print(f"❌ Помилка запису: {e}")
 
 def get_extension_data(url: str):
-    """Отримання даних про розширення"""
     try:
         resp = SESSION.get(url, timeout=20)
         html = resp.text
@@ -240,79 +250,74 @@ def check_extensions():
         data = get_extension_data(url)
         
         if not data:
+            print(f"⚠️ Не вдалося отримати дані для {name}")
             time.sleep(2)
             continue
 
         print(f" → {name}: ⭐ {data['rating']} | 📝 {data['reviews']} | 👥 {data['users']}")
         current_data[name] = data
 
-if name in previous_data:
-    old, new = previous_data[name], data
-    changes = []
+        # ✅ ВИПРАВЛЕНО: правильні відступи
+        if name in previous_data:
+            old, new = previous_data[name], data
+            changes = []
 
-    # РЕЙТИНГ
-    if old.get("rating") != new.get("rating") and "N/A" not in (old.get("rating"), new.get("rating")):
-        old_rating = float(old.get("rating"))
-        new_rating = float(new.get("rating"))
-        diff = new_rating - old_rating
-        emoji = "📈" if diff > 0 else "📉"
-        sign = "+" if diff > 0 else ""
-        changes.append(
-            f"⭐ Рейтинг: <b>{old_rating}</b> → <b>{new_rating}</b> "
-            f"({sign}{diff:.1f}) {emoji}"
-        )
+            # РЕЙТИНГ
+            if old.get("rating") != new.get("rating") and "N/A" not in (old.get("rating"), new.get("rating")):
+                old_rating = float(old.get("rating"))
+                new_rating = float(new.get("rating"))
+                diff = new_rating - old_rating
+                emoji = "📈" if diff > 0 else "📉"
+                sign = "+" if diff > 0 else ""
+                changes.append(
+                    f"⭐ Рейтинг: <b>{old_rating}</b> → <b>{new_rating}</b> "
+                    f"({sign}{diff:.1f}) {emoji}"
+                )
 
-    # ВІДГУКИ
-    if old.get("reviews") != new.get("reviews") and "N/A" not in (old.get("reviews"), new.get("reviews")):
-        try:
-            old_reviews = int(old.get("reviews").replace(",", ""))
-            new_reviews = int(new.get("reviews").replace(",", ""))
-            diff = new_reviews - old_reviews
-            emoji = "📈" if diff > 0 else "📉"
-            sign = "+" if diff > 0 else ""
-            changes.append(
-                f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b> "
-                f"({sign}{diff}) {emoji}"
-            )
-        except:
-            # Якщо не вдалося перетворити в число, показуємо як раніше
-            changes.append(f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b>")
+            # ВІДГУКИ
+            if old.get("reviews") != new.get("reviews") and "N/A" not in (old.get("reviews"), new.get("reviews")):
+                try:
+                    old_reviews = int(old.get("reviews").replace(",", ""))
+                    new_reviews = int(new.get("reviews").replace(",", ""))
+                    diff = new_reviews - old_reviews
+                    emoji = "📈" if diff > 0 else "📉"
+                    sign = "+" if diff > 0 else ""
+                    changes.append(
+                        f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b> "
+                        f"({sign}{diff}) {emoji}"
+                    )
+                except:
+                    changes.append(f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b>")
 
-    # КОРИСТУВАЧІ
-    if old.get("users") != new.get("users") and "N/A" not in (old.get("users"), new.get("users")):
-        try:
-            # Очищаємо від ком і символу +
-            old_users_str = old.get("users").replace(",", "").replace("+", "")
-            new_users_str = new.get("users").replace(",", "").replace("+", "")
-            old_users = int(old_users_str)
-            new_users = int(new_users_str)
-            diff = new_users - old_users
-            emoji = "📈" if diff > 0 else "📉"
-            sign = "+" if diff > 0 else ""
-            
-            # Форматуємо різницю з комами для великих чисел
-            diff_formatted = f"{diff:,}".replace(",", " ")
-            
-            changes.append(
-                f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b> "
-                f"({sign}{diff_formatted}) {emoji}"
-            )
-        except:
-            # Якщо не вдалося перетворити в число, показуємо як раніше
-            changes.append(f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b>")
+            # КОРИСТУВАЧІ
+            if old.get("users") != new.get("users") and "N/A" not in (old.get("users"), new.get("users")):
+                try:
+                    old_users_str = old.get("users").replace(",", "").replace("+", "")
+                    new_users_str = new.get("users").replace(",", "").replace("+", "")
+                    old_users = int(old_users_str)
+                    new_users = int(new_users_str)
+                    diff = new_users - old_users
+                    emoji = "📈" if diff > 0 else "📉"
+                    sign = "+" if diff > 0 else ""
+                    diff_formatted = f"{diff:,}".replace(",", " ")
+                    changes.append(
+                        f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b> "
+                        f"({sign}{diff_formatted}) {emoji}"
+                    )
+                except:
+                    changes.append(f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b>")
 
-    if changes:
-        msg = (
-            f"🔔 <b>{name}</b>\n"
-            f"🔗 <a href=\"{url}\">Відкрити в Chrome Web Store</a>\n\n" +
-            "\n".join(f"• {c}" for c in changes)
-        )
-        # Відправляємо ВСІм дозволеним користувачам
-        for user_id in ALLOWED_USERS:
-            send_telegram_message(msg, user_id)
-        print(f"✅ Зміни знайдено для {name}")
-
+            if changes:
+                msg = (
+                    f"🔔 <b>{name}</b>\n"
+                    f"🔗 <a href=\"{url}\">Відкрити в Chrome Web Store</a>\n\n" +
+                    "\n".join(f"• {c}" for c in changes)
+                )
+                for user_id in ALLOWED_USERS:
+                    send_telegram_message(msg, user_id)
+                print(f"✅ Зміни знайдено для {name}")
         else:
+            # Нове розширення
             msg = (
                 f"✅ <b>{name}</b> додано до моніторингу\n"
                 f"🔗 <a href=\"{url}\">Chrome Web Store</a>\n\n"
@@ -325,6 +330,7 @@ if name in previous_data:
 
         time.sleep(3)
 
+    # Збереження даних
     if current_data:
         save_data(current_data)
         
@@ -342,7 +348,6 @@ if name in previous_data:
 
 @restricted
 def handle_start_command(chat_id: str, username: str = "Unknown"):
-    """Обробка команди /start - тільки для whitelist користувачів"""
     print(f"🔹 /start від @{username} (chat_id={chat_id})")
     previous_data = load_previous_data()
     
@@ -376,7 +381,6 @@ def handle_start_command(chat_id: str, username: str = "Unknown"):
         
         lines.append(f"\n🕐 Оновлено: {checked_at}")
         
-        # Показуємо /check тільки адміну
         if chat_id == ADMIN_CHAT_ID:
             lines.append("\n💡 /check — запустити перевірку зараз")
         
@@ -386,7 +390,6 @@ def handle_start_command(chat_id: str, username: str = "Unknown"):
 
 @restricted
 def handle_check_command(chat_id: str, username: str = "Unknown"):
-    """Обробка /check - тільки для адміністратора"""
     if chat_id != ADMIN_CHAT_ID:
         send_telegram_message("⛔️ Ця команда доступна тільки адміністратору", chat_id)
         return
@@ -402,7 +405,6 @@ def handle_check_command(chat_id: str, username: str = "Unknown"):
 last_update_id = 0
 
 def check_telegram_updates():
-    """Перевірка нових повідомлень"""
     global last_update_id
     
     try:
@@ -423,13 +425,11 @@ def check_telegram_updates():
                 
                 print(f"📨 '{text}' від @{username} (chat_id={chat_id})")
                 
-                # Обробка команд (перевірка доступу всередині функцій через @restricted)
                 if text == "/start":
                     handle_start_command(chat_id, username=username)
                 elif text == "/check":
                     handle_check_command(chat_id, username=username)
                 elif text.startswith("/"):
-                    # Тільки для дозволених користувачів показуємо список команд
                     if chat_id in ALLOWED_USERS:
                         send_telegram_message(
                             f"❌ Невідома команда: {text}\n\n"
@@ -443,6 +443,9 @@ def check_telegram_updates():
 
 def main():
     global last_run_hour
+
+    # ✅ Запуск health check сервера
+    Thread(target=run_health_server, daemon=True).start()
 
     print("🤖 Chrome Extension Monitor Bot запущено!")
     print(f"👥 Дозволені користувачі: {len(ALLOWED_USERS)}")
@@ -459,10 +462,13 @@ def main():
     print("⏳ Перша перевірка...")
     try:
         check_extensions()
+        print("✅ Перша перевірка успішна")
     except Exception as e:
-        print(f"⚠️ Помилка: {e}")
+        error_msg = f"⚠️ Помилка першої перевірки: {e}"
+        print(error_msg)
+        send_telegram_message(error_msg)
 
-    print("\n🔄 Основний цикл запущено\n")
+    print("\n🔄 Основний цикл запущено. Бот працює...\n")
 
     while True:
         try:
@@ -479,9 +485,10 @@ def main():
                 
         except KeyboardInterrupt:
             print("\n🛑 Бот зупинено")
+            send_telegram_message("🛑 Бот зупинено")
             break
         except Exception as e:
-            print(f"❌ Помилка: {e}")
+            print(f"❌ Помилка в циклі: {e}")
         
         time.sleep(5)
 
