@@ -16,7 +16,7 @@ BOT_TOKEN = "8174479461:AAH0gxk4SFqqxaQTMtvUVM8LphkD53yL4Bo"
 CHAT_ID   = "540851454"
 
 # Години запуску перевірки (24-годинний формат)
-CHECK_HOURS = {9, 13, 17, 23}
+CHECK_HOURS = {7, 11, 15, 21}  # Київський час: 9, 13, 17, 23
 last_run_hour = None
 
 SEND_SUMMARY_AFTER_RUN = True
