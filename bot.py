@@ -292,24 +292,31 @@ def handle_start_command():
     
     send_telegram_message(msg)
 
+# Глобальна змінна для відстеження останнього update_id
+last_update_id = 0
+
 def check_telegram_updates():
     """Перевірка нових повідомлень від користувачів"""
+    global last_update_id
+    
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
-        resp = SESSION.get(url, timeout=5)
+        params = {"offset": last_update_id + 1, "timeout": 5}
+        resp = SESSION.get(url, params=params, timeout=10)
         data = resp.json()
         
         if data.get("ok") and data.get("result"):
             for update in data["result"]:
+                last_update_id = max(last_update_id, update.get("update_id", 0))
+                
                 message = update.get("message", {})
                 text = message.get("text", "")
-                chat_id = message.get("chat", {}).get("id")
+                chat_id = str(message.get("chat", {}).get("id", ""))
                 
-                if text == "/start" and str(chat_id) == CHAT_ID:
+                # Відповідаємо тільки вашому chat_id
+                if text.strip() == "/start" and chat_id == CHAT_ID:
+                    print(f"📱 Отримано команду /start від {chat_id}")
                     handle_start_command()
-                    # Підтвердження обробки
-                    offset = update["update_id"] + 1
-                    SESSION.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}", timeout=5)
     except Exception as e:
         print(f"Помилка перевірки команд: {e}")
 
