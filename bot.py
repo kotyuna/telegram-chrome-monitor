@@ -64,7 +64,11 @@ def send_telegram_message(message: str):
         "disable_web_page_preview": True,
     }
     try:
-        SESSION.post(url, json=payload, timeout=15)
+        resp = SESSION.post(url, json=payload, timeout=15)
+        if resp.status_code == 200:
+            print(f"✅ Повідомлення відправлено")
+        else:
+            print(f"⚠️ Помилка відправки: {resp.status_code}")
     except Exception as e:
         print(f"Помилка відправки в Telegram: {e}")
 
@@ -262,11 +266,12 @@ def check_extensions():
     print("✅ Перевірка завершена\n")
 
 def handle_start_command():
-    """Обробка команди /start - показує останні дані"""
+    """Обробка команди /start - показує останні дані з кешу"""
+    print("🔹 Обробка команди /start")
     previous_data = load_previous_data()
     
     if not previous_data:
-        msg = "👋 Вітаю!\n\n⏳ Перевірка ще не проводилась.\nНаступна перевірка о 9:00, 13:00, 17:00 або 23:00 (Київський час)"
+        msg = "👋 Вітаю!\n\n⏳ Перевірка ще не проводилась.\nНаступна перевірка о 9:00, 13:00, 17:00 або 23:00 (Київський час)\n\n💡 Команда /check — запустити перевірку зараз"
     else:
         lines = ["📊 <b>Остання перевірка</b>\n"]
         for ext in EXTENSIONS:
@@ -288,9 +293,19 @@ def handle_start_command():
                 break
         
         lines.append(f"\n🕐 Оновлено: {checked_at}")
+        lines.append("\n💡 Команда /check — запустити перевірку зараз")
         msg = "\n".join(lines)
     
     send_telegram_message(msg)
+
+def handle_check_command():
+    """Обробка команди /check - негайна перевірка"""
+    print("🔹 Обробка команди /check")
+    send_telegram_message("🔄 Запускаю перевірку розширень...\n⏳ Це займе ~20 секунд")
+    try:
+        check_extensions()
+    except Exception as e:
+        send_telegram_message(f"⚠️ Помилка виконання перевірки: {e}")
 
 # Глобальна змінна для відстеження останнього update_id
 last_update_id = 0
@@ -310,14 +325,21 @@ def check_telegram_updates():
                 last_update_id = max(last_update_id, update.get("update_id", 0))
                 
                 message = update.get("message", {})
-                text = message.get("text", "")
+                text = message.get("text", "").strip()
                 chat_id = str(message.get("chat", {}).get("id", ""))
                 
                 # Відповідаємо тільки вашому chat_id
-                if text.strip() == "/start" and chat_id == CHAT_ID:
-                    print(f"📱 Отримано команду /start від {chat_id}")
-                    handle_start_command()
-                elif text.strip() == "/start" and chat_id != CHAT_ID:
+                if chat_id == CHAT_ID:
+                    if text == "/start":
+                        print(f"📱 Отримано команду /start від {chat_id}")
+                        handle_start_command()
+                    elif text == "/check":
+                        print(f"📱 Отримано команду /check від {chat_id}")
+                        handle_check_command()
+                    elif text.startswith("/"):
+                        print(f"⚠️ Невідома команда: {text}")
+                        send_telegram_message(f"❌ Невідома команда: {text}\n\nДоступні команди:\n/start - показати останні дані\n/check - запустити перевірку зараз")
+                elif text.startswith("/"):
                     print(f"⚠️ Ігноруємо команду від невідомого користувача: {chat_id}")
     except Exception as e:
         print(f"Помилка перевірки команд: {e}")
@@ -326,27 +348,30 @@ def main():
     global last_run_hour
 
     print("🤖 Chrome Extension Monitor Bot запущено!")
-    send_telegram_message("🤖 Бот моніторингу розширень запущено.\n\n💡 Натисніть /start щоб побачити останні дані")
+    send_telegram_message("🤖 Бот моніторингу розширень запущено.\n\n💡 Команди:\n/start - показати останні дані\n/check - запустити перевірку зараз")
 
     try:
         check_extensions()
     except Exception as e:
         send_telegram_message(f"⚠️ Помилка першої перевірки: {e}")
 
+    print("\n🔄 Основний цикл розпочато. Очікую команди та перевірки...\n")
+
     while True:
-        # ✅ ДОДАЙТЕ ЦЮ ПЕРЕВІРКУ КОМАНД
+        # ✅ ПЕРЕВІРКА КОМАНД ВІД КОРИСТУВАЧІВ
         check_telegram_updates()
         
+        # Перевірка за розкладом
         now = datetime.now()
         if now.hour in CHECK_HOURS and now.minute == 0 and now.hour != last_run_hour:
-            print(f"\n⏱ Запуск перевірки: {now.strftime('%H:%M')}")
+            print(f"\n⏱ Запуск перевірки за розкладом: {now.strftime('%H:%M')}")
             try:
                 check_extensions()
             except Exception as e:
                 send_telegram_message(f"⚠️ Помилка виконання: {e}")
             last_run_hour = now.hour
 
-        time.sleep(5)
+        time.sleep(5)  # Перевірка кожні 5 секунд
 
 if __name__ == "__main__":
     main()
