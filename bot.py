@@ -317,6 +317,8 @@ def check_telegram_updates():
                 if text.strip() == "/start" and chat_id == CHAT_ID:
                     print(f"📱 Отримано команду /start від {chat_id}")
                     handle_start_command()
+                elif text.strip() == "/start" and chat_id != CHAT_ID:
+                    print(f"⚠️ Ігноруємо команду від невідомого користувача: {chat_id}")
     except Exception as e:
         print(f"Помилка перевірки команд: {e}")
 
@@ -332,6 +334,9 @@ def main():
         send_telegram_message(f"⚠️ Помилка першої перевірки: {e}")
 
     while True:
+        # ✅ ДОДАЙТЕ ЦЮ ПЕРЕВІРКУ КОМАНД
+        check_telegram_updates()
+        
         now = datetime.now()
         if now.hour in CHECK_HOURS and now.minute == 0 and now.hour != last_run_hour:
             print(f"\n⏱ Запуск перевірки: {now.strftime('%H:%M')}")
@@ -341,7 +346,7 @@ def main():
                 send_telegram_message(f"⚠️ Помилка виконання: {e}")
             last_run_hour = now.hour
 
-        time.sleep(30)
+        time.sleep(5)
 
 if __name__ == "__main__":
     main()
