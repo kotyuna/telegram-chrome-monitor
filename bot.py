@@ -112,12 +112,12 @@ def get_extension_data(url: str):
                     rating = str(val)
                     break
 
-        # Відгуки: шукаємо числа
+        # Відгуки: шукаємо числа (в дужках або після ratings/reviews)
         review_patterns = [
+            r'\((\d+)\s+ratings?\)',  # "(4 ratings)"
+            r'(\d+)\s+ratings?[^\d]',  # "4 ratings"
             r'"ratingCount"\s*:\s*"?(\d+)"?',
             r'"reviewCount"\s*:\s*"?(\d+)"?',
-            r'(\d+)\s+ratings?',
-            r'(\d+)\s+reviews?',
         ]
         for pattern in review_patterns:
             m = re.search(pattern, html, re.IGNORECASE)
@@ -125,12 +125,12 @@ def get_extension_data(url: str):
                 reviews = m.group(1)
                 break
 
-        # Користувачі: шукаємо патерни з числами та "+"
+        # Користувачі: шукаємо патерни з "users"
         user_patterns = [
-            r'"userInteractionCount"\s*:\s*"?(\d[\d,]*\+?)"?',
+            r'([\d,]+)\s+users?(?!\w)',  # "2,000 users"
+            r'"userInteractionCount"\s*:\s*"?([\d,]+)"?',
             r'UserDownloads["\s:]+([0-9,]+\+?)',
-            r'([\d,]+\+?)\s+users?',
-            r'"interactionCount".*?(\d[\d,]+\+?)',
+            r'"interactionCount".*?([\d,]+\+?)',
         ]
         for pattern in user_patterns:
             m = re.search(pattern, html, re.IGNORECASE)
@@ -261,11 +261,63 @@ def check_extensions():
     save_data(current_data)
     print("✅ Перевірка завершена\n")
 
+def handle_start_command():
+    """Обробка команди /start - показує останні дані"""
+    previous_data = load_previous_data()
+    
+    if not previous_data:
+        msg = "👋 Вітаю!\n\n⏳ Перевірка ще не проводилась.\nНаступна перевірка о 9:00, 13:00, 17:00 або 23:00 (Київський час)"
+    else:
+        lines = ["📊 <b>Остання перевірка</b>\n"]
+        for ext in EXTENSIONS:
+            n = ext["name"]
+            d = previous_data.get(n, {})
+            url = ext["url"]
+            lines.append(
+                f"• <b>{n}</b>\n"
+                f"  ⭐ Рейтинг: {d.get('rating','N/A')}\n"
+                f"  📝 Відгуки: {d.get('reviews','N/A')}\n"
+                f"  👥 Користувачі: {d.get('users','N/A')}\n"
+                f"  🔗 <a href=\"{url}\">Відкрити</a>\n"
+            )
+        
+        checked_at = "N/A"
+        for d in previous_data.values():
+            if d.get("checked_at"):
+                checked_at = d["checked_at"]
+                break
+        
+        lines.append(f"\n🕐 Оновлено: {checked_at}")
+        msg = "\n".join(lines)
+    
+    send_telegram_message(msg)
+
+def check_telegram_updates():
+    """Перевірка нових повідомлень від користувачів"""
+    try:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+        resp = SESSION.get(url, timeout=5)
+        data = resp.json()
+        
+        if data.get("ok") and data.get("result"):
+            for update in data["result"]:
+                message = update.get("message", {})
+                text = message.get("text", "")
+                chat_id = message.get("chat", {}).get("id")
+                
+                if text == "/start" and str(chat_id) == CHAT_ID:
+                    handle_start_command()
+                    # Підтвердження обробки
+                    offset = update["update_id"] + 1
+                    SESSION.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates?offset={offset}", timeout=5)
+    except Exception as e:
+        print(f"Помилка перевірки команд: {e}")
+
 def main():
     global last_run_hour
 
     print("🤖 Chrome Extension Monitor Bot запущено!")
-    send_telegram_message("🤖 Бот моніторингу розширень запущено.\nПочинаю першу перевірку ✅")
+    send_telegram_message("🤖 Бот моніторингу розширень запущено.\n\n💡 Натисніть /start щоб побачити останні дані")
 
     try:
         check_extensions()
