@@ -486,4 +486,8 @@ def main():
         time.sleep(5)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"❌ Критична помилка: {e}")
+        send_telegram_message(f"🚨 Бот впав з помилкою: {e}")
