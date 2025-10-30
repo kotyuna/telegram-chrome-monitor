@@ -246,29 +246,72 @@ def check_extensions():
         print(f" → {name}: ⭐ {data['rating']} | 📝 {data['reviews']} | 👥 {data['users']}")
         current_data[name] = data
 
-        if name in previous_data:
-            old, new = previous_data[name], data
-            changes = []
+if name in previous_data:
+    old, new = previous_data[name], data
+    changes = []
 
-            if old.get("rating") != new.get("rating") and "N/A" not in (old.get("rating"), new.get("rating")):
-                changes.append(f"⭐ Рейтинг: <b>{old.get('rating')}</b> → <b>{new.get('rating')}</b>")
+    # РЕЙТИНГ
+    if old.get("rating") != new.get("rating") and "N/A" not in (old.get("rating"), new.get("rating")):
+        old_rating = float(old.get("rating"))
+        new_rating = float(new.get("rating"))
+        diff = new_rating - old_rating
+        emoji = "📈" if diff > 0 else "📉"
+        sign = "+" if diff > 0 else ""
+        changes.append(
+            f"⭐ Рейтинг: <b>{old_rating}</b> → <b>{new_rating}</b> "
+            f"({sign}{diff:.1f}) {emoji}"
+        )
 
-            if old.get("reviews") != new.get("reviews") and "N/A" not in (old.get("reviews"), new.get("reviews")):
-                changes.append(f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b>")
+    # ВІДГУКИ
+    if old.get("reviews") != new.get("reviews") and "N/A" not in (old.get("reviews"), new.get("reviews")):
+        try:
+            old_reviews = int(old.get("reviews").replace(",", ""))
+            new_reviews = int(new.get("reviews").replace(",", ""))
+            diff = new_reviews - old_reviews
+            emoji = "📈" if diff > 0 else "📉"
+            sign = "+" if diff > 0 else ""
+            changes.append(
+                f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b> "
+                f"({sign}{diff}) {emoji}"
+            )
+        except:
+            # Якщо не вдалося перетворити в число, показуємо як раніше
+            changes.append(f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b>")
 
-            if old.get("users") != new.get("users") and "N/A" not in (old.get("users"), new.get("users")):
-                changes.append(f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b>")
+    # КОРИСТУВАЧІ
+    if old.get("users") != new.get("users") and "N/A" not in (old.get("users"), new.get("users")):
+        try:
+            # Очищаємо від ком і символу +
+            old_users_str = old.get("users").replace(",", "").replace("+", "")
+            new_users_str = new.get("users").replace(",", "").replace("+", "")
+            old_users = int(old_users_str)
+            new_users = int(new_users_str)
+            diff = new_users - old_users
+            emoji = "📈" if diff > 0 else "📉"
+            sign = "+" if diff > 0 else ""
+            
+            # Форматуємо різницю з комами для великих чисел
+            diff_formatted = f"{diff:,}".replace(",", " ")
+            
+            changes.append(
+                f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b> "
+                f"({sign}{diff_formatted}) {emoji}"
+            )
+        except:
+            # Якщо не вдалося перетворити в число, показуємо як раніше
+            changes.append(f"👥 Користувачі: <b>{old.get('users')}</b> → <b>{new.get('users')}</b>")
 
-            if changes:
-                msg = (
-                    f"🔔 <b>{name}</b>\n"
-                    f"🔗 <a href=\"{url}\">Відкрити в Chrome Web Store</a>\n\n" +
-                    "\n".join(f"• {c}" for c in changes)
-                )
-                # Відправляємо ВСІм дозволеним користувачам
-                for user_id in ALLOWED_USERS:
-                    send_telegram_message(msg, user_id)
-                print(f"✅ Зміни знайдено для {name}")
+    if changes:
+        msg = (
+            f"🔔 <b>{name}</b>\n"
+            f"🔗 <a href=\"{url}\">Відкрити в Chrome Web Store</a>\n\n" +
+            "\n".join(f"• {c}" for c in changes)
+        )
+        # Відправляємо ВСІм дозволеним користувачам
+        for user_id in ALLOWED_USERS:
+            send_telegram_message(msg, user_id)
+        print(f"✅ Зміни знайдено для {name}")
+
         else:
             msg = (
                 f"✅ <b>{name}</b> додано до моніторингу\n"
