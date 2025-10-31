@@ -3,6 +3,7 @@ import json
 import re
 import time
 import os
+import pytz  # ✅ ДОДАНО
 from datetime import datetime
 from pathlib import Path
 from functools import wraps
@@ -17,15 +18,17 @@ from bs4 import BeautifulSoup
 # =========================
 BOT_TOKEN = "8174479461:AAH0gxk4SFqqxaQTMtvUVM8LphkD53yL4Bo"
 
-# ✅ БІЛИЙ СПИСОК ДОЗВОЛЕНИХ КОРИСТУВАЧІВ (chat_id)
 ALLOWED_USERS = [
     "540851454", "8099175747", "7396474416", "962178937"
 ]
 
 ADMIN_CHAT_ID = "540851454"
 
-# Години запуску перевірки
-CHECK_HOURS = {7, 11, 15, 21}
+# ✅ КИЇВСЬКИЙ ЧАСОВИЙ ПОЯС
+KYIV_TZ = pytz.timezone('Europe/Kiev')
+
+# ✅ Години запуску перевірки (КИЇВСЬКИЙ ЧАС)
+CHECK_HOURS = {9, 13, 17, 23}  # 9:00, 13:00, 17:00, 23:00 Київ
 last_run_hour = None
 
 SEND_SUMMARY_AFTER_RUN = True
@@ -63,7 +66,6 @@ SESSION.headers.update({
 })
 SESSION.cookies.set("CONSENT", "YES+cb", domain=".google.com")
 
-# ✅ HEALTH CHECK ДЛЯ RAILWAY
 class HealthCheck(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -79,7 +81,6 @@ def run_health_server():
     print(f"🏥 Health check на порті {port}")
     server.serve_forever()
 
-# ✅ ДЕКОРАТОР ДЛЯ ПЕРЕВІРКИ ДОСТУПУ
 def restricted(func):
     @wraps(func)
     def wrapped(chat_id, *args, **kwargs):
@@ -154,7 +155,6 @@ def get_extension_data(url: str):
         reviews = "N/A"
         users = "N/A"
 
-        # Рейтинг
         rating_patterns = [
             r'(\d(?:\.\d)?)\s+out of 5',
             r'"ratingValue"\s*:\s*"?([0-5](?:\.\d+)?)"?',
@@ -167,7 +167,6 @@ def get_extension_data(url: str):
                     rating = str(val)
                     break
 
-        # Відгуки
         review_patterns = [
             r'\((\d+)\s+ratings?\)',
             r'(\d+)\s+ratings?[^\d]',
@@ -179,7 +178,6 @@ def get_extension_data(url: str):
                 reviews = m.group(1)
                 break
 
-        # Користувачі
         user_patterns = [
             r'([\d,]+)\s+users?(?!\w)',
             r'"userInteractionCount"\s*:\s*"?([\d,]+)"?',
@@ -190,7 +188,6 @@ def get_extension_data(url: str):
                 users = m.group(1).strip()
                 break
 
-        # Meta теги
         if rating == "N/A":
             meta_rating = soup.find("meta", attrs={"itemprop": "ratingValue"})
             if meta_rating and meta_rating.get("content"):
@@ -206,7 +203,6 @@ def get_extension_data(url: str):
             if meta_reviews and meta_reviews.get("content"):
                 reviews = meta_reviews["content"].strip()
 
-        # JSON-LD
         for script in soup.find_all("script", {"type": "application/ld+json"}):
             try:
                 data = json.loads(script.string or "")
@@ -231,18 +227,19 @@ def get_extension_data(url: str):
             "rating": rating,
             "users": users,
             "reviews": reviews,
-            "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "checked_at": datetime.now(KYIV_TZ).strftime("%Y-%m-%d %H:%M:%S"),  # ✅ КИЇВСЬКИЙ ЧАС
         }
     except Exception as e:
         print(f"❌ Помилка отримання даних: {e}")
         return None
 
 def check_extensions():
-    """Перевірка всіх розширень"""
     previous_data = load_previous_data()
     current_data = {}
 
-    print(f"\n🔍 Перевірка розширень о {datetime.now().strftime('%H:%M:%S')}")
+    # ✅ ЛОГУВАННЯ КИЇВСЬКОГО ЧАСУ
+    kyiv_time = datetime.now(KYIV_TZ)
+    print(f"\n🔍 Перевірка розширень о {kyiv_time.strftime('%H:%M:%S')} (Київ)")
 
     for ext in EXTENSIONS:
         name, url = ext["name"], ext["url"]
@@ -257,12 +254,10 @@ def check_extensions():
         print(f" → {name}: ⭐ {data['rating']} | 📝 {data['reviews']} | 👥 {data['users']}")
         current_data[name] = data
 
-        # ✅ ВИПРАВЛЕНО: правильні відступи
         if name in previous_data:
             old, new = previous_data[name], data
             changes = []
 
-            # РЕЙТИНГ
             if old.get("rating") != new.get("rating") and "N/A" not in (old.get("rating"), new.get("rating")):
                 old_rating = float(old.get("rating"))
                 new_rating = float(new.get("rating"))
@@ -274,7 +269,6 @@ def check_extensions():
                     f"({sign}{diff:.1f}) {emoji}"
                 )
 
-            # ВІДГУКИ
             if old.get("reviews") != new.get("reviews") and "N/A" not in (old.get("reviews"), new.get("reviews")):
                 try:
                     old_reviews = int(old.get("reviews").replace(",", ""))
@@ -289,7 +283,6 @@ def check_extensions():
                 except:
                     changes.append(f"📝 Відгуки: <b>{old.get('reviews')}</b> → <b>{new.get('reviews')}</b>")
 
-            # КОРИСТУВАЧІ
             if old.get("users") != new.get("users") and "N/A" not in (old.get("users"), new.get("users")):
                 try:
                     old_users_str = old.get("users").replace(",", "").replace("+", "")
@@ -317,7 +310,6 @@ def check_extensions():
                     send_telegram_message(msg, user_id)
                 print(f"✅ Зміни знайдено для {name}")
         else:
-            # Нове розширення
             msg = (
                 f"✅ <b>{name}</b> додано до моніторингу\n"
                 f"🔗 <a href=\"{url}\">Chrome Web Store</a>\n\n"
@@ -330,7 +322,6 @@ def check_extensions():
 
         time.sleep(3)
 
-    # Збереження даних
     if current_data:
         save_data(current_data)
         
@@ -444,16 +435,18 @@ def check_telegram_updates():
 def main():
     global last_run_hour
 
-    # ✅ Запуск health check сервера
     Thread(target=run_health_server, daemon=True).start()
 
     print("🤖 Chrome Extension Monitor Bot запущено!")
     print(f"👥 Дозволені користувачі: {len(ALLOWED_USERS)}")
-    print(f"👤 Адмін: {ADMIN_CHAT_ID}\n")
+    print(f"👤 Адмін: {ADMIN_CHAT_ID}")
+    print(f"🌍 Часовий пояс: Київ (EET/EEST)")
+    print(f"⏰ Перевірки: {', '.join(map(str, sorted(CHECK_HOURS)))}:00 (Київський час)\n")
     
     send_telegram_message(
         "🤖 Бот запущено!\n\n"
-        f"👥 Дозволено користувачів: {len(ALLOWED_USERS)}\n\n"
+        f"👥 Дозволено користувачів: {len(ALLOWED_USERS)}\n"
+        f"⏰ Перевірки: 9:00, 13:00, 17:00, 23:00 (Київський час)\n\n"
         "💡 Команди:\n"
         "/start - статистика\n"
         "/check - перевірка (тільки адмін)"
@@ -474,9 +467,10 @@ def main():
         try:
             check_telegram_updates()
             
-            now = datetime.now()
+            # ✅ ВИКОРИСТОВУЄМО КИЇВСЬКИЙ ЧАС
+            now = datetime.now(KYIV_TZ)
             if now.hour in CHECK_HOURS and now.minute == 0 and now.hour != last_run_hour:
-                print(f"\n⏱ Перевірка за розкладом: {now.strftime('%H:%M')}")
+                print(f"\n⏱ Перевірка за розкладом: {now.strftime('%H:%M')} (Київ)")
                 try:
                     check_extensions()
                 except Exception as e:
