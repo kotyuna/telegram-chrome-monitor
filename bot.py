@@ -3,8 +3,7 @@ import json
 import re
 import time
 import os
-import pytz  # ✅ ДОДАНО
-from datetime import datetime
+from datetime import datetime, timedelta  # ✅ ДОДАНО timedelta
 from pathlib import Path
 from functools import wraps
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -24,11 +23,12 @@ ALLOWED_USERS = [
 
 ADMIN_CHAT_ID = "540851454"
 
-# ✅ КИЇВСЬКИЙ ЧАСОВИЙ ПОЯС
-KYIV_TZ = pytz.timezone('Europe/Kiev')
-
-# ✅ Години запуску перевірки (КИЇВСЬКИЙ ЧАС)
-CHECK_HOURS = {9, 13, 17, 23}  # 9:00, 13:00, 17:00, 23:00 Київ
+# ✅ Години запуску перевірки (UTC)
+# 7:00 UTC = 9:00 Київ
+# 11:00 UTC = 13:00 Київ
+# 15:00 UTC = 17:00 Київ
+# 21:00 UTC = 23:00 Київ
+CHECK_HOURS = {7, 11, 15, 21}
 last_run_hour = None
 
 SEND_SUMMARY_AFTER_RUN = True
@@ -65,6 +65,12 @@ SESSION.headers.update({
     "Cache-Control": "no-cache",
 })
 SESSION.cookies.set("CONSENT", "YES+cb", domain=".google.com")
+
+# ✅ ФУНКЦІЯ ДЛЯ ОТРИМАННЯ КИЇВСЬКОГО ЧАСУ
+def get_kyiv_time():
+    """Отримати київський час (UTC+2)"""
+    utc_now = datetime.utcnow()
+    return utc_now + timedelta(hours=2)
 
 class HealthCheck(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -227,7 +233,7 @@ def get_extension_data(url: str):
             "rating": rating,
             "users": users,
             "reviews": reviews,
-            "checked_at": datetime.now(KYIV_TZ).strftime("%Y-%m-%d %H:%M:%S"),  # ✅ КИЇВСЬКИЙ ЧАС
+            "checked_at": get_kyiv_time().strftime("%Y-%m-%d %H:%M:%S"),  # ✅ Київський час
         }
     except Exception as e:
         print(f"❌ Помилка отримання даних: {e}")
@@ -237,8 +243,7 @@ def check_extensions():
     previous_data = load_previous_data()
     current_data = {}
 
-    # ✅ ЛОГУВАННЯ КИЇВСЬКОГО ЧАСУ
-    kyiv_time = datetime.now(KYIV_TZ)
+    kyiv_time = get_kyiv_time()
     print(f"\n🔍 Перевірка розширень о {kyiv_time.strftime('%H:%M:%S')} (Київ)")
 
     for ext in EXTENSIONS:
@@ -440,8 +445,8 @@ def main():
     print("🤖 Chrome Extension Monitor Bot запущено!")
     print(f"👥 Дозволені користувачі: {len(ALLOWED_USERS)}")
     print(f"👤 Адмін: {ADMIN_CHAT_ID}")
-    print(f"🌍 Часовий пояс: Київ (EET/EEST)")
-    print(f"⏰ Перевірки: {', '.join(map(str, sorted(CHECK_HOURS)))}:00 (Київський час)\n")
+    print(f"🌍 Часовий пояс: Київ (UTC+2)")
+    print(f"⏰ Перевірки: 9:00, 13:00, 17:00, 23:00 (Київський час)\n")
     
     send_telegram_message(
         "🤖 Бот запущено!\n\n"
@@ -467,10 +472,11 @@ def main():
         try:
             check_telegram_updates()
             
-            # ✅ ВИКОРИСТОВУЄМО КИЇВСЬКИЙ ЧАС
-            now = datetime.now(KYIV_TZ)
+            # ✅ Використовуємо UTC для перевірки (Railway працює в UTC)
+            now = datetime.utcnow()
             if now.hour in CHECK_HOURS and now.minute == 0 and now.hour != last_run_hour:
-                print(f"\n⏱ Перевірка за розкладом: {now.strftime('%H:%M')} (Київ)")
+                kyiv_time = get_kyiv_time()
+                print(f"\n⏱ Перевірка за розкладом: {kyiv_time.strftime('%H:%M')} (Київ)")
                 try:
                     check_extensions()
                 except Exception as e:
