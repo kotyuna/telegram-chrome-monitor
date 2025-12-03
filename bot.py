@@ -55,6 +55,10 @@ EXTENSIONS = [
         "name": "RecZap",
         "url": "https://chromewebstore.google.com/detail/reczap-%E2%80%93-screen-audio-cam/oocephjckjidfgiaaffnmkiiikmadkml"
     },
+        {
+        "name": "RecJump",
+        "url": "https://chromewebstore.google.com/detail/recjump-screen-audio-came/ajloakkohlpbobanidjnlakdbiggebjg"
+    },
 ]
 
 SESSION = requests.Session()
