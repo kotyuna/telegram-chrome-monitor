@@ -44,8 +44,8 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/font-finder-identifier-fr/ajabpfgngbkodbhcfjhmmedgnaojinnn"
     },
     {
-        "name": "SnipCapture",
-        "url": "https://chromewebstore.google.com/detail/snipcapture-easy-screensh/jlpchojjamcikhgmedobmfodcefjmccn"
+        "name": "SimpleSnap",
+        "url": "https://chromewebstore.google.com/detail/simplesnap-snipping-tool/nbljjljaoanknannhlonmaknhckcoldi"
     },
     {
         "name": "PowerSound",
