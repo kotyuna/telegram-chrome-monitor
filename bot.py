@@ -36,24 +36,20 @@ DATA_FILE = Path(__file__).resolve().parent / "extension_data.json"
 
 EXTENSIONS = [
     {
-        "name": "MyColorPick",
-        "url": "https://chromewebstore.google.com/detail/mycolorpick-one-click-col/jckoejjnaljgkmgblmbodoegoefofhee"
-    },
-    {
-        "name": "Font Finder",
-        "url": "https://chromewebstore.google.com/detail/font-finder-identifier-fr/ajabpfgngbkodbhcfjhmmedgnaojinnn"
+        "name": "ColorPickPro",
+        "url": "https://chromewebstore.google.com/detail/colorpickpro-simple-color/aplhgigkopkholapijailboandapfaim"
     },
     {
         "name": "SimpleSnap",
         "url": "https://chromewebstore.google.com/detail/simplesnap-snipping-tool/nbljjljaoanknannhlonmaknhckcoldi"
     },
     {
-        "name": "PowerSound",
-        "url": "https://chromewebstore.google.com/detail/powersound-high-quality-v/hinkijopmipplcccjeiblmiipdpagdbl"
+        "name": "SoundPusher",
+        "url": "https://chromewebstore.google.com/detail/soundpusher-volume-booste/lkbhphangehffigagihcinfgjmhojakl"
     },
     {
-        "name": "RecZap",
-        "url": "https://chromewebstore.google.com/detail/reczap-%E2%80%93-screen-audio-cam/oocephjckjidfgiaaffnmkiiikmadkml"
+        "name": "RecItEasy",
+        "url": "https://chromewebstore.google.com/detail/reciteasy-screen-audio-ca/pnhkolkelkfnfphohbdnboedhejlfbho"
     },
         {
         "name": "RecJump",
