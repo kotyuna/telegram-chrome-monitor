@@ -40,20 +40,20 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/colorpickpro-simple-color/aplhgigkopkholapijailboandapfaim"
     },
     {
-        "name": "SimpleSnap",
-        "url": "https://chromewebstore.google.com/detail/simplesnap-snipping-tool/nbljjljaoanknannhlonmaknhckcoldi"
+        "name": "SnapItFast",
+        "url": "https://chromewebstore.google.com/detail/snapitfast-%E2%80%93-screenshot-s/keeocmalfanaeglbdieodbbpoplbklnb"
     },
     {
-        "name": "SoundPusher",
-        "url": "https://chromewebstore.google.com/detail/soundpusher-volume-booste/lkbhphangehffigagihcinfgjmhojakl"
+        "name": "SoundBoom",
+        "url": "https://chromewebstore.google.com/detail/soundboom-volume-booster/efikooedhaahjglcdnapogcgamjbnlhl"
     },
     {
         "name": "RecItEasy",
         "url": "https://chromewebstore.google.com/detail/reciteasy-screen-audio-ca/pnhkolkelkfnfphohbdnboedhejlfbho"
     },
         {
-        "name": "RecJump",
-        "url": "https://chromewebstore.google.com/detail/recjump-screen-audio-came/ajloakkohlpbobanidjnlakdbiggebjg"
+        "name": "OneRec",
+        "url": "https://chromewebstore.google.com/detail/onerec-screen-recorder-wi/oadhnncgejdlomamokgijepfafmiikga"
     },
 ]
 
