@@ -36,8 +36,12 @@ DATA_FILE = Path(__file__).resolve().parent / "extension_data.json"
 
 EXTENSIONS = [
     {
-        "name": "ColorPickPro",
-        "url": "https://chromewebstore.google.com/detail/colorpickpro-simple-color/aplhgigkopkholapijailboandapfaim"
+        "name": "ColorPickster",
+        "url": "https://chromewebstore.google.com/detail/colorpickster-%E2%80%93-one-click/ncnnhapjfmfgljblcgpeojgbhcihhece"
+    },
+        {
+        "name": "ColorMasterPick",
+        "url": "https://chromewebstore.google.com/detail/colormasterpick-%E2%80%93-smart-c/paokmbfboeofhfjogpeihkhfbegaigjh"
     },
     {
         "name": "SnapItFast",
@@ -48,8 +52,8 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/soundboom-volume-booster/efikooedhaahjglcdnapogcgamjbnlhl"
     },
     {
-        "name": "RecItEasy",
-        "url": "https://chromewebstore.google.com/detail/reciteasy-screen-audio-ca/pnhkolkelkfnfphohbdnboedhejlfbho"
+        "name": "GoRec",
+        "url": "https://chromewebstore.google.com/detail/gorec-screen-recorder-wit/kgijhaeibgpjlgekmmgnbkhnejbojocm"
     },
         {
         "name": "OneRec",
