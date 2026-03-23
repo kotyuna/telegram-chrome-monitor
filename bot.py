@@ -44,8 +44,12 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/colormasterpick-%E2%80%93-smart-c/paokmbfboeofhfjogpeihkhfbegaigjh"
     },
     {
-        "name": "SnapItFast",
-        "url": "https://chromewebstore.google.com/detail/snapitfast-%E2%80%93-screenshot-s/keeocmalfanaeglbdieodbbpoplbklnb"
+        "name": "ScreenSnap",
+        "url": "https://chromewebstore.google.com/detail/screensnap-snipping-tool/bkfigfepencfiandfhbiimpanljfbiej"
+    },
+    {
+        "name": "QuickCapture",
+        "url": "https://chromewebstore.google.com/detail/quickcapture-snipping-too/jpaihclmbopabkcedfdhphihnddnmhjf"
     },
     {
         "name": "SoundBoom",
