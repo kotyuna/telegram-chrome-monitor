@@ -24,10 +24,8 @@ ALLOWED_USERS = [
 ADMIN_CHAT_ID = "540851454"
 
 # ✅ Години запуску перевірки (UTC)
-# 7:00 UTC = 9:00 Київ
-# 11:00 UTC = 13:00 Київ
-# 15:00 UTC = 17:00 Київ
-# 21:00 UTC = 23:00 Київ
+# 7:00 UTC = 8:00 Київ
+# 21:00 UTC = 22:00 Київ
 CHECK_HOURS = {7, 11, 15, 21}
 last_run_hour = None
 
@@ -52,16 +50,20 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/quickcapture-snipping-too/jpaihclmbopabkcedfdhphihnddnmhjf"
     },
     {
-        "name": "SoundBoom",
-        "url": "https://chromewebstore.google.com/detail/soundboom-volume-booster/efikooedhaahjglcdnapogcgamjbnlhl"
+        "name": "VolumeMax",
+        "url": "https://chromewebstore.google.com/detail/volumemax-volume-booster/fnkgipcgehhmmlhmbnjkackdceljbplh"
     },
     {
         "name": "GoRec",
         "url": "https://chromewebstore.google.com/detail/gorec-screen-recorder-wit/kgijhaeibgpjlgekmmgnbkhnejbojocm"
     },
         {
-        "name": "OneRec",
-        "url": "https://chromewebstore.google.com/detail/onerec-screen-recorder-wi/oadhnncgejdlomamokgijepfafmiikga"
+        "name": "QuickRec",
+        "url": "https://chromewebstore.google.com/detail/quickrec-%E2%80%93-screen-recorde/iikcddhdncngibeinfpancdokfmnpegk"
+    },
+        {
+        "name": "TubeHance",
+        "url": "https://chromewebstore.google.com/detail/tubehance-enhancer-for-yo/bpignofkfojjjmacmceljmfignldlohi"
     },
 ]
 
