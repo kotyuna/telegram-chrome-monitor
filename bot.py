@@ -42,8 +42,8 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/colormasterpick-%E2%80%93-smart-c/paokmbfboeofhfjogpeihkhfbegaigjh"
     },
     {
-        "name": "ScreenSnap",
-        "url": "https://chromewebstore.google.com/detail/screensnap-snipping-tool/bkfigfepencfiandfhbiimpanljfbiej"
+        "name": "ScreenCatch",
+        "url": "https://chromewebstore.google.com/detail/screencatch-snipping-tool/gacleogdnjbjbkmebemibjlphanihcho?"
     },
     {
         "name": "QuickCapture",
@@ -54,8 +54,8 @@ EXTENSIONS = [
         "url": "https://chromewebstore.google.com/detail/volumemax-volume-booster/fnkgipcgehhmmlhmbnjkackdceljbplh"
     },
     {
-        "name": "GoRec",
-        "url": "https://chromewebstore.google.com/detail/gorec-screen-recorder-wit/kgijhaeibgpjlgekmmgnbkhnejbojocm"
+        "name": "RecSnap",
+        "url": "https://chromewebstore.google.com/detail/recsnap-screen-recorder-w/ingengaocofccoknjddoiljmbapfnifh?"
     },
         {
         "name": "QuickRec",
